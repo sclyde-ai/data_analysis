@@ -1,1 +1,7 @@
 tus_grade_analysis
+Dockerfile
+docker-compose.yml
+MANIFEST.in
+pyproject.toml
+requirements.txt
+data
