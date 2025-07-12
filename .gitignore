@@ -6,5 +6,6 @@ Google_Drive
 
 MANIFEST.in
 pyproject.toml
+*.egg-info
 
 .env
