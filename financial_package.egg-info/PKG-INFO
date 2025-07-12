@@ -1,0 +1,8 @@
+Metadata-Version: 2.1
+Name: financial_package
+Version: 0.0.1
+Requires-Dist: yfinance>=0.2.0
+Requires-Dist: pandas>=1.0.0
+Requires-Dist: numpy>=1.20.0
+Requires-Dist: matplotlib>=3.0.0
+Requires-Dist: mplfinance>=0.12.0

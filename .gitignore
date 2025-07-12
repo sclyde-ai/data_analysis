@@ -1,7 +1,10 @@
 tus_grade_analysis
-Dockerfile
-docker-compose.yml
+data
+class
+tus
+Google_Drive
+
 MANIFEST.in
 pyproject.toml
-requirements.txt
-data
+
+.env

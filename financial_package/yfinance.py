@@ -71,6 +71,8 @@ class Company():
             data_directory = importlib.resources.files('financial_package.data')
             print(data_directory)
             print(type(data_directory))
+            print(data_directory)
+            print(type(data_directory))
             output_dir = os.path.join(data_directory, self.ticker)
             output_dir = os.path.join(output_dir, attribute)
             if parameters:
@@ -327,4 +329,4 @@ class Insider(Company):
     def __init__(self):
         self.insider_purchases = self.get_data('insider_purchases')    
         self.insider_roster_holders = self.get_data('insider_roster_holders')    
-        self.insider_transactions = self.get_data('insider_transactions')  
+        self.insider_transactions = self.get_data('insider_transactions')
