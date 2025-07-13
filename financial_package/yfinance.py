@@ -14,6 +14,8 @@ from mplfinance.original_flavor import candlestick_ohlc
 import matplotlib.dates as mdates
 import importlib.resources
 
+import time
+
 @dataclass
 class List():
     elem: List[str]
@@ -42,25 +44,25 @@ class MinuteInHour():
             raise ValueError("type is incorrect")
         if self.minute >= 60:
             raise ValueError("hour is below 24")
-
 class Company():
-    def __init__(self, ticker: List):
-        self.ticker = ticker
-        self.info = self.get_data('info')
-        
+    def __init__(self, tickers: List, attributes: List):
+        self.tickers = tickers
+        self.attributes = attributes
+
     def get_data(
             self,
+            ticker: str,
             attribute: str,
-            cache_days: int = 0,
+            cache_days: int = 1,
             cache_hours: HourInDay = 0,
-            cache_minutes: MinuteInHour = 1,
+            cache_minutes: MinuteInHour = 0,
             parameters: dict = None,
         ):
             """
             yfinanceからデータを取得し、指定されたディレクトリに保存する。
 
             Args:
-                self.ticker (str): 調査する銘柄のティッカーシンボル。
+                ticker (str): 調査する銘柄のティッカーシンボル。
                 target_directory (str): 保存先の親ディレクトリ名。
                 cache_days (int): キャッシュの有効期間（日）。
                 cache_hours (int): キャッシュの有効期間（時間）。
@@ -68,12 +70,10 @@ class Company():
             """
             # --- 1. パスの定義 ---
             # 最新データはティッカー名のディレクトリ直下に置く
-            data_directory = importlib.resources.files('financial_package.data')
+            data_directory = importlib.resources.files('financial_package')
             print(data_directory)
-            print(type(data_directory))
-            print(data_directory)
-            print(type(data_directory))
-            output_dir = os.path.join(data_directory, self.ticker)
+            data_directory = os.path.join(data_directory, 'data')
+            output_dir = os.path.join(data_directory, ticker)
             output_dir = os.path.join(output_dir, attribute)
             if parameters:
                 for key in parameters:
@@ -94,7 +94,7 @@ class Company():
                 
                 # ▼▼▼ キャッシュが有効な場合の処理 ▼▼▼
                 if datetime.now(timezone.utc) - last_fetch_time < expiration_delta:
-                    print(f"\n--- {self.ticker} のデータはキャッシュが有効です ---")
+                    print(f"\n--- {ticker} のデータはキャッシュが有効です ---")
                     print(f"ローカルディレクトリからデータを読み込みます: {output_dir}")
 
                     # ディレクトリ内の全ファイルを走査
@@ -119,7 +119,7 @@ class Company():
                     return data
 
             # --- 2. データ取得処理 ---
-            print(f"\n--- {self.ticker} のデータをAPIから取得します ---")
+            print(f"\n--- {ticker} のデータをAPIから取得します ---")
             
             fetch_timestamp = datetime.now(timezone.utc).isoformat()
 
@@ -127,7 +127,7 @@ class Company():
                 os.makedirs(output_dir)
                 print(f"ディレクトリ '{output_dir}' を作成しました。")
 
-            ticker = yf.Ticker(self.ticker)            
+            ticker = yf.Ticker(ticker)            
             try:
                 attr = getattr(ticker, attribute)
                 if callable(attr):
@@ -224,6 +224,17 @@ class Company():
 
             print(f"\n--- 処理が完了しました。データは '{output_dir}' に保存されています。 ---")
             return data
+    
+    def get_all_data(self):
+        ticker_dict = {}
+        for ticker in self.tickers:
+            attribute_dict = {}
+            for attribute in self.attributes:
+                series = self.get_data(ticker, attribute)
+                attribute_dict[attribute] = series
+                time.sleep(1)
+            ticker_dict[ticker] = attribute_dict
+        return ticker_dict
 
 class Stock(Company):
     def __init__(self, ticker, interval='1d'):
