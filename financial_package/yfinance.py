@@ -71,7 +71,6 @@ class Company():
             # --- 1. パスの定義 ---
             # 最新データはティッカー名のディレクトリ直下に置く
             data_directory = importlib.resources.files('financial_package')
-            print(data_directory)
             data_directory = os.path.join(data_directory, 'data')
             output_dir = os.path.join(data_directory, ticker)
             output_dir = os.path.join(output_dir, attribute)
@@ -135,13 +134,11 @@ class Company():
                         data = attr(**parameters)
                     else:
                         data = attr()
+                    data = data.T
                     data.index = data.index.tz_localize(None)
                 else:
                     data = attr
-
-                print('hello')
-                # if data is None or (hasattr(data, 'empty') and data.empty):
-                #     return
+                
                 if isinstance(data, (pd.DataFrame, pd.Series)):
                     if not parameters:
                         filepath = os.path.join(output_dir, f"{attribute}.csv")
@@ -225,6 +222,7 @@ class Company():
             print(f"\n--- 処理が完了しました。データは '{output_dir}' に保存されています。 ---")
             return data
     
+
     def get_all_data(self):
         ticker_dict = {}
         for ticker in self.tickers:
@@ -236,12 +234,26 @@ class Company():
             ticker_dict[ticker] = attribute_dict
         return ticker_dict
 
+    def get_attribute(self, attribute, parameters=None):
+        ticker_dict = {}
+        for ticker in self.tickers:
+            series = self.get_data(ticker, attribute)
+            ticker_dict[ticker] = series
+        return ticker_dict
+
+    def get_ticker(self, ticker):
+        attribute_dict = {}
+        for attribute in self.attributes:
+            series = self.get_data(ticker, attribute)
+            attribute_dict[attribute] = series
+        return attribute_dict
+
 class Stock(Company):
     def __init__(self, ticker, interval='1d'):
         super().__init__(ticker)
-        self.history = self.get_data('history', parameters={'interval': interval})
-        self.dividends = self.get_data('dividends')
-        self.splits = self.get_data('splits')
+        self.history = self.get_attribute('history', parameters={'interval': interval})
+        self.dividends = self.get_attribute('dividends')
+        self.splits = self.get_attribute('splits')
 
         # self.date = self.history.index
         # self.prices = self.history['Close']
@@ -318,26 +330,74 @@ class Stock(Company):
 
 class Option(Stock):
     def __init__(self):
-        self.options = self.get_data('options')
+        self.options = self.get_attribute('options')
 
 class Holder(Stock):
     def __init__(self):
-        self.major_holders = self.get_data('major_holders')
-        self.institutional_holders = self.get_data('institutional_holders')
-        self.mutualfund_holders = self.get_data('mutualfund_holders')
+        self.major_holders = self.get_attribute('major_holders')
+        self.institutional_holders = self.get_attribute('institutional_holders')
+        self.mutualfund_holders = self.get_attribute('mutualfund_holders')
 
 class Finance(Company):
     def __init__(self, quarterly=False):
-        self.balance_sheet = self.get_data('balance_sheet')    
-        self.income_stmt = self.get_data('income_stmt')    
-        self.cashflow = self.get_data('cashflow')
+        self.balance_sheet = self.get_all_tickers('balance_sheet')    
+        self.income_stmt = self.get_all_tickers('income_stmt')    
+        self.cashflow = self.get_all_tickers('cashflow')
         if quarterly:
-            self.balance_sheet = self.get_data('quarterly_balance_sheet')    
-            self.income_stmt = self.get_data('quarterly_income_stmt')    
-            self.cashflow = self.get_data('quarterly_cashflow')
+            self.balance_sheet = self.get_all_tickers('quarterly_balance_sheet')    
+            self.income_stmt = self.get_all_tickers('quarterly_income_stmt')    
+            self.cashflow = self.get_all_tickers('quarterly_cashflow')
+
+    def get_indices(self, ticker):
+        """
+        財務指標を計算してDataFrameを返す関数
+        :param BS_dict: 貸借対照表データの辞書
+        :param PL_dict: 損益計算書データの辞書
+        :param ticker: 企業ティッカー
+        :return: 財務指標DataFrame
+        """
+        # 空のDataFrame作成
+        indeces = pd.DataFrame()
+        
+        try:
+            BS = self.balance_sheet[ticker]
+            PL = self.income_stmt[ticker]
+            
+            # 安全にデータを取得するヘルパー関数
+            def get_safe(df, col):
+                return df[col] if col in df.columns else pd.Series(dtype='float64')
+            
+            # 必要なデータを取得
+            total_revenue = get_safe(PL, 'Total Revenue')
+            cost_of_revenue = get_safe(PL, 'Cost Of Revenue')
+            net_income = get_safe(PL, 'Net Income')
+            inventory = get_safe(BS, 'Inventory')
+            stockholders_equity = get_safe(BS, 'Stockholders Equity')
+            treasury_shares = get_safe(BS, 'Treasury Shares Number')
+            shares_issued = get_safe(BS, 'Share Issued')
+            
+            # 財務指標計算 (ゼロ除算を避けるためnp.where使用)
+            indeces['Gross Profit'] = total_revenue - cost_of_revenue
+            
+            with np.errstate(divide='ignore', invalid='ignore'):
+                indeces['Cost Of Revenue Ratio'] = np.where(total_revenue != 0, cost_of_revenue / total_revenue, np.nan)
+                indeces['Inventory Turnover'] = np.where(inventory != 0, cost_of_revenue / inventory, np.nan)
+                indeces['ROE'] = np.where(stockholders_equity != 0, net_income / stockholders_equity, np.nan)
+                indeces['Treasury Stock Ratio'] = np.where(shares_issued != 0, treasury_shares / shares_issued, np.nan)
+            
+            # インデックスを設定
+            if not indeces.empty:
+                indeces.index = PL.index if not PL.empty else BS.index
+                
+        except KeyError as e:
+            print(f"Error: {e} not found for ticker {ticker}")
+        except Exception as e:
+            print(f"Unexpected error occurred: {e}")
+        
+        return indeces
 
 class Insider(Company):
     def __init__(self):
-        self.insider_purchases = self.get_data('insider_purchases')    
-        self.insider_roster_holders = self.get_data('insider_roster_holders')    
-        self.insider_transactions = self.get_data('insider_transactions')
+        self.insider_purchases = self.get_attribute('insider_purchases')    
+        self.insider_roster_holders = self.get_attribute('insider_roster_holders')    
+        self.insider_transactions = self.get_attribute('insider_transactions')
