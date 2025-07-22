@@ -1,0 +1,5 @@
+git add . && git commit -m "$(date '+%Y/%m/%d %H:%M:%S')" && git push
+
+devcontainer open <path_to_project_folder>
+
+sudo mount -t drvfs G: /mnt/g

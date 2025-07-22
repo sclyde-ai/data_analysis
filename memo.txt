@@ -1,0 +1,5 @@
+Gross Profit（粗利）	Total Revenue − Cost Of Revenue
+Cost of Revenue Ratio（売上原価率）	Cost Of Revenue ÷ Total Revenue
+Inventory Turnover（在庫回転率）	Cost Of Revenue ÷ Inventory（近似）
+ROE（自己資本利益率）	Net Income ÷ Stockholders Equity
+Treasury Stock Ratio（自己株式比率）	Treasury Shares Number ÷ Share Issued

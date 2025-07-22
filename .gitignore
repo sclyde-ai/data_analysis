@@ -3,6 +3,8 @@ data
 class
 tus
 Google_Drive
+gmount.bash
+gitpush.bash
 
 MANIFEST.in
 pyproject.toml
