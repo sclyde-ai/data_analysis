@@ -5,6 +5,7 @@ tus
 Google_Drive
 gmount.bash
 gitpush.bash
+command.txt
 
 MANIFEST.in
 pyproject.toml
